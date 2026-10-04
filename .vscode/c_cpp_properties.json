@@ -8,10 +8,10 @@
         {
             "name": "PlatformIO",
             "includePath": [
-                "C:/PlatformIO/Gimbal/include",
-                "C:/PlatformIO/Gimbal/src",
-                "C:/PlatformIO/Gimbal/.pio/libdeps/esp32dev/MPU6050/src",
-                "C:/PlatformIO/Gimbal/.pio/libdeps/esp32dev/Simple FOC/src",
+                "C:/PlatformIO_Projects/Gimbal/include",
+                "C:/PlatformIO_Projects/Gimbal/src",
+                "C:/PlatformIO_Projects/Gimbal/.pio/libdeps/esp32dev/MPU6050/src",
+                "C:/PlatformIO_Projects/Gimbal/.pio/libdeps/esp32dev/Simple FOC/src",
                 "C:/Users/gligo/.platformio/packages/framework-arduinoespressif32/libraries/SPI/src",
                 "C:/Users/gligo/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src",
                 "C:/Users/gligo/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
@@ -246,10 +246,10 @@
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
-                    "C:/PlatformIO/Gimbal/include",
-                    "C:/PlatformIO/Gimbal/src",
-                    "C:/PlatformIO/Gimbal/.pio/libdeps/esp32dev/MPU6050/src",
-                    "C:/PlatformIO/Gimbal/.pio/libdeps/esp32dev/Simple FOC/src",
+                    "C:/PlatformIO_Projects/Gimbal/include",
+                    "C:/PlatformIO_Projects/Gimbal/src",
+                    "C:/PlatformIO_Projects/Gimbal/.pio/libdeps/esp32dev/MPU6050/src",
+                    "C:/PlatformIO_Projects/Gimbal/.pio/libdeps/esp32dev/Simple FOC/src",
                     "C:/Users/gligo/.platformio/packages/framework-arduinoespressif32/libraries/SPI/src",
                     "C:/Users/gligo/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src",
                     "C:/Users/gligo/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
