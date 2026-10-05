@@ -55,8 +55,8 @@ reference frame. Yaw is relative if there is no magnetometer present.
 
 -  Use "OUTPUT_TEAPOT" for output that matches the InvenSense teapot demo. 
 -------------------------------------------------------------------------------------------------------------------------------*/ 
-#define OUTPUT_READABLE_YAWPITCHROLL
-//#define OUTPUT_READABLE_QUATERNION
+//#define OUTPUT_READABLE_YAWPITCHROLL
+#define OUTPUT_READABLE_QUATERNION
 //#define OUTPUT_READABLE_EULER
 //#define OUTPUT_READABLE_REALACCEL
 //#define OUTPUT_READABLE_WORLDACCEL
