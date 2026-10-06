@@ -79,7 +79,7 @@ public:
 
     void updatePID(int error, int pastError, int dt)
     {
-        voltageQuadrature = kp*error + ki*(1/2)*dt*(pasterror + error) + kd*(pastError - error)/dt;
+        voltageQuadrature = kp*error + ki*(1/2)*dt*(pastError + error) + kd*(pastError - error)/dt;
     }
 
     int getVoltageQuadrature(){
@@ -100,9 +100,12 @@ private:
     bool DMPReady;
     uint8_t devStatus;
     uint8_t FIFOBuffer[64];
-    Quaternion q;
 public:
-    Gyro(int gyroInterruptPin) : gyroInterruptPin(gyroInterruptPin), DMPReady(false) {
+    Gyro(int gyroInterruptPin) 
+        : mpu(MPU6050_DEFAULT_ADDRESS, &Wire),
+        gyroInterruptPin(gyroInterruptPin),
+        DMPReady(false)  
+    {
         mpu.initialize();
         pinMode(gyroInterruptPin, INPUT);
         if(mpu.testConnection() == false){
@@ -133,13 +136,13 @@ public:
         }
     }
 
-    Quaternion getQuaternion() {
-        if (mpu.dmpGetCurrentFIFOPacket(FIFOBuffer)) { // Get the Latest packet 
-            /* Display Quaternion values in easy matrix form: [w, x, y, z] */
-            mpu.dmpGetQuaternion(&q, FIFOBuffer);
-            return q;
+    bool getQuaternion(Quaternion& quaternion) {
+        if (!mpu.dmpGetCurrentFIFOPacket(FIFOBuffer)) {
+            return false;
         }
-        else return -1; ////////////////////!!!!!!!!!!!!!!!!!!!CHECKCHECKCHEKC!!
+
+        mpu.dmpGetQuaternion(&quaternion, FIFOBuffer);
+        return true;
     }
 
 
@@ -147,23 +150,5 @@ public:
 
 
 void loop() {
-    if (!DMPReady) {
-        print("GYRO NOT WORKING!!! --- DMP FAILURE!!!");
-        return;
-    }
-    
-    /* Read a packet from FIFO */
-    if (mpu.dmpGetCurrentFIFOPacket(FIFOBuffer)) { // Get the Latest packet 
 
-    /* Display Quaternion values in easy matrix form: [w, x, y, z] */
-    mpu.dmpGetQuaternion(&q, FIFOBuffer);
-    Serial.print("quat\t");
-    Serial.print(q.w);
-    Serial.print("\t");
-    Serial.print(q.x);
-    Serial.print("\t");
-    Serial.print(q.y);
-    Serial.print("\t");
-    Serial.println(q.z);
-    }
 }

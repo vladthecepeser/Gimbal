@@ -1,5 +1,10 @@
-#include "FOCFuncs.cpp"
+#include "GimbalFuncs.cpp"
 #include "GimbalFuncs.h"
+#include "arduino.h"
+#include <HardwareTimer.h> 
+
+//HardwareTimer.h requires ~0.5 us during each timer interrupt for 40-80 clock
+//cycles of abstraction computing. However, it is portable across almost all STMs.
 
 using namespace std;
 
@@ -12,26 +17,34 @@ int mpuYAccelOffset = 0;
 int mpuZAccelOffset = 0;
 
 volatile bool fifoReady = false;
-volatile bool tick20kHz = false;
+volatile bool tick500Hz = false;
+volatile bool tick2500Hz = false;
 
 void fifoISR() {
   fifoReady = true;
 }
 
-ISR(TIMER1_COMPA_vect) {
-    tick20kHz = true;
+void timer500HzCallback() {
+    tick500Hz = true;
 }
 
+void timer2500HzCallback() {
+    tick2500Hz = true;
+}
+
+HardwareTimer timer500Hz(TIM2);
+HardwareTimer timer2500Hz(TIM3);
 
 FOC_Control_20kHz()
 {
     for (int i = 0; i < 3; i++)
     {
-        Motors[i].updateEncoder(); //gets angle and calculates electrical angle
+        Motors[i].updateEncoder();  //gets angle and calculates electrical angle
+                                    //Realistically only updates every 200 uS
 
-        Motors[i].updateFOC(); //includes inverse_park and SVPWM calculation
+        Motors[i].updateFOC();      //includes inverse_park and SVPWM calculation
 
-        Motors[i].applySVPWM(); //applies the calculated SVPWM to the motor
+        Motors[i].applySVPWM();     //applies the calculated SVPWM to the motor
     }
 
     //Code separated to make class easier to change
@@ -98,6 +111,8 @@ void setup()
 
 void main()
 {
+    Gyro topGyro;
+    topGyro();
     if (fifoReady) {
     fifoReady = false;
 
@@ -109,7 +124,7 @@ void main()
         }
     }
 
-    if (tick20kHz) {
+    if (tick2500Hz) {
         FOC_Control_20kHz();
     }
 }
