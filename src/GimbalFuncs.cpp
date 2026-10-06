@@ -16,7 +16,7 @@ private:
     int SCLPin;
 
     // Motor control parameters
-    string role;
+    char role;
 
     int theta;
     int V_quadrature;
@@ -28,7 +28,7 @@ private:
     int V_c;
 
 public:
-    FOCMotor(const string& role, int aPhase, int bPhase, int cPhase, int SDAPin, int SCLPin)
+    FOCMotor(const char& role, int aPhase, int bPhase, int cPhase, int SDAPin, int SCLPin)
         : role(role), aPhase(aPhase), bPhase(bPhase), cPhase(cPhase), SDAPin(SDAPin), SCLPin(SCLPin)
     {
     }
@@ -101,8 +101,16 @@ private:
     uint8_t devStatus;
     uint8_t FIFOBuffer[64];
 public:
-    Gyro(int gyroInterruptPin) 
-        : mpu(MPU6050_DEFAULT_ADDRESS, &Wire),
+    Gyro(int interruptPin, 
+        uint8_t address = MPU6050_DEFAULT_ADDRESS, 
+        TwoWire* bus = &Wire,
+        int setXGyroOffset,
+        int setYGyroOffset,
+        int setZGyroOffset,
+        int setXAccelOffset,
+        int setYAccelOffset,
+        int setZAccelOffset) 
+        : mpu(MPU6050_DEFAULT_ADDRESS, bus),
         gyroInterruptPin(gyroInterruptPin),
         DMPReady(false)  
     {

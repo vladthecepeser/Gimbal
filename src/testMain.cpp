@@ -8,13 +8,22 @@
 
 using namespace std;
 
+//pins 
+int wireSDA = 18;
+int wireSCl = 19;
+int wire_1SDA = 20;
+int wire_1SDA = 21;
+
+
 //Offsets
-int mpuXGyroOffset = 0;
-int mpuYGyroOffset = 0;
-int mpuZGyroOffset = 0;
-int mpuXAccelOffset = 0;
-int mpuYAccelOffset = 0;
-int mpuZAccelOffset = 0;
+int topXGyroOffset = 0;
+int topYGyroOffset = 0;
+int topZGyroOffset = 0;
+int topXAccelOffset = 0;
+int topYAccelOffset = 0;
+int topZAccelOffset = 0;
+
+
 
 volatile bool fifoReady = false;
 volatile bool tick500Hz = false;
@@ -74,6 +83,7 @@ PID_Loop()
   
 void setup()
 {
+
     FOCMotor Motors[]
     
     Motors[0] = FOCMotor("Pitch Motor", aPhasePitch, bPhasePitch, cPhasePitch, SDAPitch, SCLPitch); //pitch motor
@@ -111,7 +121,7 @@ void setup()
 
 void main()
 {
-    Gyro topGyro;
+    Gyro topGyro(topInterruptPin, 0x68, topXGyroOffset, topYGyroOffset, topZGyroOffset, topXAccelOffset, topYAccelOffset, topZAccelOffset);
     topGyro();
     if (fifoReady) {
     fifoReady = false;
