@@ -13,25 +13,21 @@ int wireSDA = 18;
 int wireSCl = 19;
 int wire_1SDA = 20;
 int wire_1SDA = 21;
+int baseInterruptPin = 17;
 
 
 //Offsets
-int topXGyroOffset = 0;
-int topYGyroOffset = 0;
-int topZGyroOffset = 0;
-int topXAccelOffset = 0;
-int topYAccelOffset = 0;
-int topZAccelOffset = 0;
+int baseXGyroOffset = 0;
+int baseYGyroOffset = 0;
+int baseZGyroOffset = 0;
+int baseXAccelOffset = 0;
+int baseYAccelOffset = 0;
+int baseZAccelOffset = 0;
 
 
-
-volatile bool fifoReady = false;
 volatile bool tick500Hz = false;
 volatile bool tick2500Hz = false;
 
-void fifoISR() {
-  fifoReady = true;
-}
 
 void timer500HzCallback() {
     tick500Hz = true;
@@ -44,7 +40,7 @@ void timer2500HzCallback() {
 HardwareTimer timer500Hz(TIM2);
 HardwareTimer timer2500Hz(TIM3);
 
-FOC_Control_20kHz()
+void FOC_Control_2500Hz()
 {
     for (int i = 0; i < 3; i++)
     {
@@ -62,11 +58,13 @@ FOC_Control_20kHz()
         //* FOC algorithm should mostly remain intact
 }
 
-PID_Loop()
+void PID_Loop_500Hz()
 {
-    if (mpu.dmpGetCurrentFIFOPacket(FIFOBuffer)) {
-            mpu.dmpGetQuaternion(&q, FIFOBuffer);
-            mpu.dmpGetGravity(&gravity, &q);
+    Quaternion q;
+    
+    if (baseGyro.dmpGetCurrentFIFOPacket(baseGyro.FIFOBuffer)) {
+            baseGyro.dmpGetQuaternion(&q, baseGyro.FIFOBuffer);
+            baseGyro.dmpGetGravity(&gravity, &q);
     }
 
     for (int i = 0; i < 3; i++)
@@ -97,19 +95,13 @@ void setup()
     PIDS[2] = PID(kpYaw, kiYaw, kdYaw); //yaw PID
 
     
-    // Configure Timer1 for 20 kHz
-    // Formula: freq = F_CPU / (prescaler * (1 + OCR1A))
-    // For 16 MHz, prescaler=1, target=20000 Hz:
-    // OCR1A = 16,000,000 / 20,000 - 1 = 799
-    noInterrupts();
-    TCCR1A = 0;
-    TCCR1B = 0;
-    TCNT1 = 0;
-    TCCR1B |= (1 << WGM12);     // CTC mode
-    TCCR1B |= (1 << CS10);      // Prescaler = 1
-    OCR1A = 799;                // Compare value for 20 kHz
-    TIMSK1 |= (1 << OCIE1A);    // Enable compare match interrupt -- Links to ISR(TIMER1_COMPA_vect)
-    interrupts();
+    timer500Hz.setOverflow(500, HERTZ_FORMAT);
+    timer500Hz.attachInterrupt(timer500HzCallback);
+    timer500Hz.resume();
+
+    timer2500Hz.setOverflow(2500, HERTZ_FORMAT);
+    timer2500Hz.attachInterrupt(timer2500HzCallback);
+    timer2500Hz.resume();
 
     Wire.begin();
     Wire.setClock(400000);
@@ -121,21 +113,16 @@ void setup()
 
 void main()
 {
-    Gyro topGyro(topInterruptPin, 0x68, topXGyroOffset, topYGyroOffset, topZGyroOffset, topXAccelOffset, topYAccelOffset, topZAccelOffset);
-    topGyro();
-    if (fifoReady) {
-    fifoReady = false;
+    Gyro baseGyro(baseInterruptPin, 0x68, baseXGyroOffset, baseYGyroOffset, baseZGyroOffset, baseXAccelOffset, baseYAccelOffset, baseZAccelOffset);
 
-    uint8_t status = mpu.getIntStatus();
-
-        // optional: check if this was a data-ready event
-        if (status & 0x01) {  // DATA_RDY_INT bit in MPU6050
-            PID_Loop();
-        }
+    if (tick500Hz) {
+        tick500Hz = false;
+        PID_Loop_500Hz();
     }
 
     if (tick2500Hz) {
-        FOC_Control_20kHz();
+        tick2500Hz = false;
+        FOC_Control_2500Hz();
     }
 }
 
