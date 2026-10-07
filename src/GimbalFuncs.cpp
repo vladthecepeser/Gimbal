@@ -1,24 +1,32 @@
 // Base class
 #include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps20.h"
-#include <vector>
+#include "AS5600.h"
+#include <string>
 
 using namespace std;
 
 class FOCMotor
 {
 private:
-    // Motor pins
+
+    AS5600 encoder;
+
+    // Pins
     int aPhase;
     int bPhase;
     int cPhase;
-    int SDAPin;
-    int SCLPin;
+    int directionPin;
 
     // Motor control parameters
-    char role;
+    string role;
 
-    int theta;
+    //Computation
+    float pastTheta = 0.0f;
+    float currentTheta = 0.0f;
+    bool angleInitialized = false;
+    const float pi = 3.14159265358979323846f;
+
     int V_quadrature;
     int V_beta;
     int V_alpha;
@@ -28,9 +36,22 @@ private:
     int V_c;
 
 public:
-    FOCMotor(const char& role, int aPhase, int bPhase, int cPhase, int SDAPin, int SCLPin)
-        : role(role), aPhase(aPhase), bPhase(bPhase), cPhase(cPhase), SDAPin(SDAPin), SCLPin(SCLPin)
+    FOCMotor(const char& role, 
+        int aPhase, 
+        int bPhase, 
+        int cPhase, 
+        int directionPin,
+        TwoWire* bus = &Wire)
+        : role(role), 
+        aPhase(aPhase), 
+        bPhase(bPhase), 
+        cPhase(cPhase), 
+        directionPin(directionPin),
+        encoder(bus)
+
     {
+        encoder.begin(directionPin);  //  set direction pin.
+        encoder.setDirection(AS5600_CLOCK_WISE);  //  default, just be explicit.
     }
 
     string getRole() const
@@ -38,8 +59,34 @@ public:
         return role;
     }
 
-    void updateEncoder()
-    {
+    void updateEncoder() //Expected runtime to be at most 500 us or 2kHz
+    {                   
+        const float rawTheta = encoder.rawAngle() * AS5600_RAW_TO_RADIANS;
+
+        if (encoder.lastError() != AS5600_OK) {
+            return;
+        }
+
+        if (!angleInitialized) {
+            pastTheta = rawTheta;
+            currentTheta = rawTheta;
+            angleInitialized = true;
+            return;
+        }
+
+        float difference = rawTheta - pastTheta;
+        const float twoPi = 2.0f * pi;
+        if (difference > pi) {
+            difference -= twoPi;
+        } else if (difference < -pi) {
+            difference += twoPi;
+        }
+
+        currentTheta += difference;
+        pastTheta = rawTheta;
+        
+        return;
+
     }
 
     void updateFOC()
@@ -48,6 +95,10 @@ public:
 
     void applySVPWM()
     {
+    }
+
+    float getTheta(){
+        return(currentTheta);
     }
 };
 
@@ -101,18 +152,19 @@ private:
     uint8_t devStatus;
     uint8_t FIFOBuffer[64];
 public:
-    Gyro(int interruptPin, 
-        uint8_t address = MPU6050_DEFAULT_ADDRESS, 
-        TwoWire* bus = &Wire,
-        int setXGyroOffset,
-        int setYGyroOffset,
-        int setZGyroOffset,
-        int setXAccelOffset,
-        int setYAccelOffset,
-        int setZAccelOffset) 
-        : mpu(MPU6050_DEFAULT_ADDRESS, bus),
-        gyroInterruptPin(gyroInterruptPin),
-        DMPReady(false)  
+    Gyro(int interruptPin,
+        uint8_t address,
+        void (*interruptHandler)(),
+        int XGyroOffset,
+        int YGyroOffset,
+        int ZGyroOffset,
+        int XAccelOffset,
+        int YAccelOffset,
+        int ZAccelOffset,
+        TwoWire* bus = &Wire)
+        : mpu(address, bus),
+          gyroInterruptPin(interruptPin),
+          DMPReady(false)
     {
         mpu.initialize();
         pinMode(gyroInterruptPin, INPUT);
@@ -122,19 +174,19 @@ public:
         }
         devStatus = mpu.dmpInitialize();
 
-        mpu.setXGyroOffset(0);
-        mpu.setYGyroOffset(0);
-        mpu.setZGyroOffset(0);
-        mpu.setXAccelOffset(0);
-        mpu.setYAccelOffset(0);
-        mpu.setZAccelOffset(0);
+        mpu.setXGyroOffset(XGyroOffset);
+        mpu.setYGyroOffset(YGyroOffset);
+        mpu.setZGyroOffset(ZGyroOffset);
+        mpu.setXAccelOffset(XAccelOffset);
+        mpu.setYAccelOffset(YAccelOffset);
+        mpu.setZAccelOffset(ZAccelOffset);
 
         if (devStatus == 0) {
             mpu.CalibrateAccel(6);  
             mpu.CalibrateGyro(6);
             mpu.setDMPEnabled(true);
             pinMode(gyroInterruptPin, INPUT);
-            attachInterrupt(digitalPinToInterrupt(gyroInterruptPin), fifoISR, RISING);
+            attachInterrupt(digitalPinToInterrupt(gyroInterruptPin), interruptHandler, RISING);
             DMPReady = true;
         } 
         else {
@@ -153,10 +205,9 @@ public:
         return true;
     }
 
+    bool isDmpPacketReady() {
+        return DMPReady &&
+               mpu.getFIFOCount() >= mpu.dmpGetFIFOPacketSize();
+    }
 
 };
-
-
-void loop() {
-
-}

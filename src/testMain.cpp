@@ -12,8 +12,16 @@ using namespace std;
 int wireSDA = 18;
 int wireSCl = 19;
 int wire_1SDA = 20;
-int wire_1SDA = 21;
+int wire_1SCL = 21;
 int baseInterruptPin = 17;
+int cameraInterruptPin = 16;
+constexpr uint8_t baseGyroAddress = 0x68;
+constexpr uint8_t cameraGyroAddress = 0x69;
+
+TwoWire i2cGyro(PB7, PB8);
+TwoWire i2cYaw(PA8, PA9);
+TwoWire i2cRoll(PC9, PC8);
+TwoWire i2cPitch(PC7, PC6);
 
 
 //Offsets
@@ -24,20 +32,37 @@ int baseXAccelOffset = 0;
 int baseYAccelOffset = 0;
 int baseZAccelOffset = 0;
 
+int cameraXGyroOffset = 0;
+int cameraYGyroOffset = 0;
+int cameraZGyroOffset = 0;
+int cameraXAccelOffset = 0;
+int cameraYAccelOffset = 0;
+int cameraZAccelOffset = 0;
 
-volatile bool tick500Hz = false;
+
+//ISR flags
 volatile bool tick2500Hz = false;
+volatile bool baseFifoInterrupt = false;
+volatile bool cameraFifoInterrupt = false;
 
-
-void timer500HzCallback() {
-    tick500Hz = true;
-}
+//Global Vars
+Quaternion qBase;
+Quaternion qcamera;
+Gyro* baseGyro = nullptr;
+Gyro* cameraGyro = nullptr;
 
 void timer2500HzCallback() {
     tick2500Hz = true;
 }
 
-HardwareTimer timer500Hz(TIM2);
+void baseGyroISR() {
+    baseFifoInterrupt = true;
+}
+
+void cameraGyroISR() {
+    cameraFifoInterrupt = true;
+}
+
 HardwareTimer timer2500Hz(TIM3);
 
 void FOC_Control_2500Hz()
@@ -46,7 +71,6 @@ void FOC_Control_2500Hz()
     {
         Motors[i].updateEncoder();  //gets angle and calculates electrical angle
                                     //Realistically only updates every 200 uS
-
         Motors[i].updateFOC();      //includes inverse_park and SVPWM calculation
 
         Motors[i].applySVPWM();     //applies the calculated SVPWM to the motor
@@ -58,19 +82,11 @@ void FOC_Control_2500Hz()
         //* FOC algorithm should mostly remain intact
 }
 
-void PID_Loop_500Hz()
+void PID_Loop()
 {
-    Quaternion q;
-    
-    if (baseGyro.dmpGetCurrentFIFOPacket(baseGyro.FIFOBuffer)) {
-            baseGyro.dmpGetQuaternion(&q, baseGyro.FIFOBuffer);
-            baseGyro.dmpGetGravity(&gravity, &q);
-    }
-
     for (int i = 0; i < 3; i++)
     {
-
-        errors[i] = desiredAngle[i] - Gyro.getAngle(i);
+        errors[i] = desiredAngle[i] - baseGyro->getAngle(i);
 
         PIDS[i].updatePID(errors[i], pastErrors[i], dt);
     }
@@ -94,30 +110,73 @@ void setup()
     PIDS[1] = PID(kpRoll, kiRoll, kdRoll); //roll PID
     PIDS[2] = PID(kpYaw, kiYaw, kdYaw); //yaw PID
 
-    
-    timer500Hz.setOverflow(500, HERTZ_FORMAT);
-    timer500Hz.attachInterrupt(timer500HzCallback);
-    timer500Hz.resume();
-
     timer2500Hz.setOverflow(2500, HERTZ_FORMAT);
     timer2500Hz.attachInterrupt(timer2500HzCallback);
     timer2500Hz.resume();
 
-    Wire.begin();
-    Wire.setClock(400000);
+    i2cGyro.begin();
+    i2cGyro.setClock(400000);
+    i2cYaw.begin();
+    i2cYaw.setClock(400000);
+    i2cRoll.begin();
+    i2cRoll.setClock(400000);
+    i2cPitch.begin();
+    i2cPitch.setClock(400000);
 
     Serial.begin(115200); //115200 is required for Teapot Demo output
     while (!Serial);
-    
+
+    static Gyro baseGyroInstance(
+        baseInterruptPin,
+        baseGyroAddress,
+        baseGyroISR,
+        baseXGyroOffset,
+        baseYGyroOffset,
+        baseZGyroOffset,
+        baseXAccelOffset,
+        baseYAccelOffset,
+        baseZAccelOffset,
+        &i2cGyro);
+    static Gyro cameraGyroInstance(
+        cameraInterruptPin,
+        cameraGyroAddress,
+        cameraGyroISR,
+        cameraXGyroOffset,
+        cameraYGyroOffset,
+        cameraZGyroOffset,
+        cameraXAccelOffset,
+        cameraYAccelOffset,
+        cameraZAccelOffset,
+        &i2cGyro);
+
+    baseGyro = &baseGyroInstance;
+    cameraGyro = &cameraGyroInstance;
 }
 
-void main()
+void loop()
 {
-    Gyro baseGyro(baseInterruptPin, 0x68, baseXGyroOffset, baseYGyroOffset, baseZGyroOffset, baseXAccelOffset, baseYAccelOffset, baseZAccelOffset);
+    noInterrupts();
+    const bool bothGyroInterruptsPending =
+        baseFifoInterrupt && cameraFifoInterrupt;
+    if (bothGyroInterruptsPending) {
+        baseFifoInterrupt = false;
+        cameraFifoInterrupt = false;
+    }
+    interrupts();
 
-    if (tick500Hz) {
-        tick500Hz = false;
-        PID_Loop_500Hz();
+    if (bothGyroInterruptsPending) {
+        const bool bothDmpPacketsReady =
+            baseGyro->isDmpPacketReady() &&
+            cameraGyro->isDmpPacketReady();
+
+        if (bothDmpPacketsReady &&
+            baseGyro->getQuaternion(qBase) &&
+            cameraGyro->getQuaternion(qcamera)) {
+            PID_Loop();
+        } else {
+            baseFifoInterrupt = true;
+            cameraFifoInterrupt = true;
+        }
     }
 
     if (tick2500Hz) {
@@ -125,5 +184,3 @@ void main()
         FOC_Control_2500Hz();
     }
 }
-
-

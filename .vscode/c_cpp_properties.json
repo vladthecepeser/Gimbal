@@ -10,6 +10,7 @@
             "includePath": [
                 "C:/PlatformIO/Gimbal/include",
                 "C:/PlatformIO/Gimbal/src",
+                "C:/PlatformIO/Gimbal/.pio/libdeps/nucleo_g474re/AS5600",
                 "C:/PlatformIO/Gimbal/.pio/libdeps/nucleo_g474re/MPU6050/src",
                 "C:/PlatformIO/Gimbal/.pio/libdeps/nucleo_g474re/I2Cdevlib-MPU6050",
                 "C:/PlatformIO/Gimbal/.pio/libdeps/nucleo_g474re/I2Cdevlib-Core",
@@ -58,6 +59,7 @@
                 "path": [
                     "C:/PlatformIO/Gimbal/include",
                     "C:/PlatformIO/Gimbal/src",
+                    "C:/PlatformIO/Gimbal/.pio/libdeps/nucleo_g474re/AS5600",
                     "C:/PlatformIO/Gimbal/.pio/libdeps/nucleo_g474re/MPU6050/src",
                     "C:/PlatformIO/Gimbal/.pio/libdeps/nucleo_g474re/I2Cdevlib-MPU6050",
                     "C:/PlatformIO/Gimbal/.pio/libdeps/nucleo_g474re/I2Cdevlib-Core",
