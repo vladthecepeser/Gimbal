@@ -1,4 +1,5 @@
-#include "GimbalFuncs.cpp"
+#include "abstractFuncs.cpp"
+#include "basicFuncs.cpp"
 #include "GimbalFuncs.h"
 #include "arduino.h"
 #include <HardwareTimer.h> 
@@ -18,11 +19,8 @@ int cameraInterruptPin = 16;
 constexpr uint8_t baseGyroAddress = 0x68;
 constexpr uint8_t cameraGyroAddress = 0x69;
 
-TwoWire i2cGyro(PB7, PB8);
-TwoWire i2cYaw(PA8, PA9);
-TwoWire i2cRoll(PC9, PC8);
-TwoWire i2cPitch(PC7, PC6);
-
+//Motor specifics
+const int polePairCount = 7;
 
 //Offsets
 int baseXGyroOffset = 0;
@@ -48,8 +46,14 @@ volatile bool cameraFifoInterrupt = false;
 //Global Vars
 Quaternion qBase;
 Quaternion qcamera;
+
 Gyro* baseGyro = nullptr;
 Gyro* cameraGyro = nullptr;
+
+TwoWire i2cGyro(PB7, PA15);
+TwoWire i2cYaw(PF0, PC4);
+TwoWire i2cRoll(PC11, PA8);
+TwoWire i2cPitch(PC7, PC6);
 
 void timer2500HzCallback() {
     tick2500Hz = true;
@@ -69,7 +73,7 @@ void FOC_Control_2500Hz()
 {
     for (int i = 0; i < 3; i++)
     {
-        Motors[i].updateEncoder();  //gets angle and calculates electrical angle
+        Motors[i].updatePosition();  //gets angle and calculates electrical angle
                                     //Realistically only updates every 200 uS
         Motors[i].updateFOC();      //includes inverse_park and SVPWM calculation
 
@@ -97,6 +101,9 @@ void PID_Loop()
   
 void setup()
 {
+    TIM1_PWM_Init();
+    TIM8_PWM_Init();
+    TIM20_PWM_Init();
 
     FOCMotor Motors[]
     
@@ -156,22 +163,19 @@ void setup()
 void loop()
 {
     noInterrupts();
-    const bool bothGyroInterruptsPending =
-        baseFifoInterrupt && cameraFifoInterrupt;
-    if (bothGyroInterruptsPending) {
+    const bool bothGyroInterrupts = baseFifoInterrupt && cameraFifoInterrupt;
+    if (bothGyroInterrupts) {
         baseFifoInterrupt = false;
         cameraFifoInterrupt = false;
     }
     interrupts();
 
-    if (bothGyroInterruptsPending) {
+    if (bothGyroInterrupts) {
         const bool bothDmpPacketsReady =
             baseGyro->isDmpPacketReady() &&
             cameraGyro->isDmpPacketReady();
 
-        if (bothDmpPacketsReady &&
-            baseGyro->getQuaternion(qBase) &&
-            cameraGyro->getQuaternion(qcamera)) {
+        if (bothDmpPacketsReady && baseGyro->getQuaternion(qBase) && cameraGyro->getQuaternion(qcamera)) {
             PID_Loop();
         } else {
             baseFifoInterrupt = true;

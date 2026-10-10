@@ -19,13 +19,20 @@ private:
     int directionPin;
 
     // Motor control parameters
-    string role;
+    const char role;
+    const int polePairCount;
+    const float elecAngleOffset;
+    const float mechAngleOffset; 
 
     //Computation
     float pastTheta = 0.0f;
-    float currentTheta = 0.0f;
+    float theta = 0.0f;
+    float currentCumulativeTheta = 0.0f;
     bool angleInitialized = false;
+    float electricalAngle;
     const float pi = 3.14159265358979323846f;
+    const float twoPi = 2.0f * pi;
+    const float electModulo = 2.0f * pi / polePairCount;
 
     int V_quadrature;
     int V_beta;
@@ -36,18 +43,24 @@ private:
     int V_c;
 
 public:
-    FOCMotor(const char& role, 
-        int aPhase, 
-        int bPhase, 
-        int cPhase, 
-        int directionPin,
-        TwoWire* bus = &Wire)
-        : role(role), 
-        aPhase(aPhase), 
-        bPhase(bPhase), 
-        cPhase(cPhase), 
-        directionPin(directionPin),
-        encoder(bus)
+    FOCMotor(const char& Role, 
+        const int PolePairCount,
+        const float ElecAngleOffset,
+        const float MechAngleOffset,
+        int APhase, 
+        int BPhase, 
+        int CPhase, 
+        int DirectionPin,
+        TwoWire* Bus = &Wire)
+        : role(Role), 
+        polePairCount(PolePairCount),
+        elecAngleOffset(ElecAngleOffset),
+        mechAngleOffset(MechAngleOffset),
+        aPhase(APhase), 
+        bPhase(BPhase), 
+        cPhase(CPhase), 
+        directionPin(DirectionPin),
+        encoder(Bus)
 
     {
         encoder.begin(directionPin);  //  set direction pin.
@@ -59,46 +72,68 @@ public:
         return role;
     }
 
-    void updateEncoder() //Expected runtime to be at most 500 us or 2kHz
+    void updatePosition() //Expected runtime to be at most 500 us or 2kHz
     {                   
-        const float rawTheta = encoder.rawAngle() * AS5600_RAW_TO_RADIANS;
+        const float theta = encoder.rawAngle() * AS5600_RAW_TO_RADIANS;
 
         if (encoder.lastError() != AS5600_OK) {
             return;
         }
 
         if (!angleInitialized) {
-            pastTheta = rawTheta;
-            currentTheta = rawTheta;
+            currentCumulativeTheta = theta;
             angleInitialized = true;
             return;
         }
 
-        float difference = rawTheta - pastTheta;
-        const float twoPi = 2.0f * pi;
+        float difference = theta - pastTheta;
         if (difference > pi) {
             difference -= twoPi;
         } else if (difference < -pi) {
             difference += twoPi;
         }
 
-        currentTheta += difference;
-        pastTheta = rawTheta;
-        
+        pastTheta = theta;
+        currentCumulativeTheta += difference;
+    
         return;
 
     }
 
-    void updateFOC()
+    void updateFOC(int desiredTorque) //Expected runtime to be at most 500 us or 2kHz
     {
-    }
+        electricalAngle = theta - elecAngleOffset;
+        while (electricalAngle >= electModulo) {
+            electricalAngle -= electModulo;
+        }
+        while (electricalAngle < 0.0f) {
+            electricalAngle += electModulo;
+        }
 
+        const float sinAngle = sin(electricalAngle);
+        const float cosAngle = cos(electricalAngle);
+
+        V_quadrature = desiredTorque;
+        V_beta = V_quadrature * sinAngle;
+        V_alpha = V_quadrature * cosAngle;
+
+        V_a = V_alpha;
+        V_b = (-0.5f * V_alpha) + (sqrt(3.0f) / 2.0f * V_beta);
+        V_c = (-0.5f * V_alpha) - (sqrt(3.0f) / 2.0f * V_beta);
+
+
+        return;
+    }
+    
+
+    //Use common mode injection. More computationally efficient than
     void applySVPWM()
     {
+        
     }
 
-    float getTheta(){
-        return(currentTheta);
+    float getPostition(){
+        return(currentCumulativeTheta);
     }
 };
 
@@ -147,10 +182,21 @@ private:
     //MPU6050 mpu(0x69); //Use for AD0 high
     //MPU6050 mpu(0x68, &Wire1); //Use for AD0 low, but 2nd Wire (TWI/I2C) object.
 
+    //pin
     int gyroInterruptPin;
+
+    //Management/Call Stuff
     bool DMPReady;
     uint8_t devStatus;
     uint8_t FIFOBuffer[64];
+
+    //Offsets
+    int xGyroOffset;
+    int yGyroOffset;
+    int zGyroOffset;
+    int xAccelOffset;
+    int yAccelOffset;
+    int zAccelOffset;
 public:
     Gyro(int interruptPin,
         uint8_t address,
@@ -163,8 +209,14 @@ public:
         int ZAccelOffset,
         TwoWire* bus = &Wire)
         : mpu(address, bus),
-          gyroInterruptPin(interruptPin),
-          DMPReady(false)
+        gyroInterruptPin(interruptPin),
+        DMPReady(false),
+        xGyroOffset(XGyroOffset),
+        yGyroOffset(YGyroOffset),
+        zGyroOffset(ZGyroOffset),
+        xAccelOffset(XAccelOffset),
+        yAccelOffset(YAccelOffset),
+        zAccelOffset(ZAccelOffset)
     {
         mpu.initialize();
         pinMode(gyroInterruptPin, INPUT);
@@ -173,13 +225,6 @@ public:
             while(true);
         }
         devStatus = mpu.dmpInitialize();
-
-        mpu.setXGyroOffset(XGyroOffset);
-        mpu.setYGyroOffset(YGyroOffset);
-        mpu.setZGyroOffset(ZGyroOffset);
-        mpu.setXAccelOffset(XAccelOffset);
-        mpu.setYAccelOffset(YAccelOffset);
-        mpu.setZAccelOffset(ZAccelOffset);
 
         if (devStatus == 0) {
             mpu.CalibrateAccel(6);  
