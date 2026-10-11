@@ -2,14 +2,14 @@
 #include "GimbalFuncs.h"
 
 // Timer channel	Pin
-// TIM1 CH1–CH3	    PC0, PC1, PA10
-// TIM8 CH1–CH3	    PB6, PB8, PB9
-// TIM20 CH1–CH3	PB2, PC2, PC8
+// TIM1 CH1–CH3	    PC0, PC1, PA10  //Yaw 'y'
+// TIM8 CH1–CH3	    PB6, PB8, PB9   //Roll 'r'
+// TIM20 CH1–CH3	PB2, PC2, PC8   //Pitch 'p'
 
 //Don't need complimentary switching for DRV8313 -- handled internally by the DRV8313.  
 //So we can use the normal PWM outputs without the complementary ones.
 
-void TIM1_PWM_Init(void)
+void Pitch_PWM_Init(void)
 {
     // Assumes TIM1CLK = 170 MHz:
     // counter clock = 170 MHz / (33 + 1) = 5 MHz
@@ -91,7 +91,7 @@ void TIM1_PWM_Init(void)
     TIM1->CR1 |= TIM_CR1_CEN;
 }
 
-void TIM8_PWM_Init(void)
+void Roll_PWM_Init(void)
 {
     // Assumes TIM8CLK = 170 MHz:
     // counter clock = 170 MHz / (33 + 1) = 5 MHz
@@ -160,7 +160,7 @@ void TIM8_PWM_Init(void)
     TIM8->CR1 |= TIM_CR1_CEN;
 }
 
-void TIM20_PWM_Init(void)
+void Yaw_PWM_Init(void)
 {
     // Assumes TIM20CLK = 170 MHz:
     // counter clock = 170 MHz / (33 + 1) = 5 MHz
@@ -236,55 +236,55 @@ void TIM20_PWM_Init(void)
     TIM20->CR1 |= TIM_CR1_CEN;
 }
 
-void TIM1_CH1_SetDutyCycle(unsigned int dutyPercent)
+void Pitch_CH1_SetDutyCycle(unsigned int dutyPercent)
 {
     if (dutyPercent > 100U) dutyPercent = 100U;
     TIM1->CCR1 = dutyPercent;
 }
 
-void TIM1_CH2_SetDutyCycle(unsigned int dutyPercent)
+void Pitch_CH2_SetDutyCycle(unsigned int dutyPercent)
 {
     if (dutyPercent > 100U) dutyPercent = 100U;
     TIM1->CCR2 = dutyPercent;
 }
 
-void TIM1_CH3_SetDutyCycle(unsigned int dutyPercent)
+void Pitch_CH3_SetDutyCycle(unsigned int dutyPercent)
 {
     if (dutyPercent > 100U) dutyPercent = 100U;
     TIM1->CCR3 = dutyPercent;
 }
 
-void TIM8_CH1_SetDutyCycle(unsigned int dutyPercent)
+void Roll_CH1_SetDutyCycle(unsigned int dutyPercent)
 {
     if (dutyPercent > 100U) dutyPercent = 100U;
     TIM8->CCR1 = dutyPercent;
 }
 
-void TIM8_CH2_SetDutyCycle(unsigned int dutyPercent)
+void Roll_CH2_SetDutyCycle(unsigned int dutyPercent)
 {
     if (dutyPercent > 100U) dutyPercent = 100U;
     TIM8->CCR2 = dutyPercent;
 }
 
-void TIM8_CH3_SetDutyCycle(unsigned int dutyPercent)
+void Roll_CH3_SetDutyCycle(unsigned int dutyPercent)
 {
     if (dutyPercent > 100U) dutyPercent = 100U;
     TIM8->CCR3 = dutyPercent;
 }
 
-void TIM20_CH1_SetDutyCycle(unsigned int dutyPercent)
+void Yaw_CH1_SetDutyCycle(unsigned int dutyPercent)
 {
     if (dutyPercent > 100U) dutyPercent = 100U;
     TIM20->CCR1 = dutyPercent;
 }
 
-void TIM20_CH2_SetDutyCycle(unsigned int dutyPercent)
+void Yaw_CH2_SetDutyCycle(unsigned int dutyPercent)
 {
     if (dutyPercent > 100U) dutyPercent = 100U;
     TIM20->CCR2 = dutyPercent;
 }
 
-void TIM20_CH3_SetDutyCycle(unsigned int dutyPercent)
+void Yaw_CH3_SetDutyCycle(unsigned int dutyPercent)
 {
     if (dutyPercent > 100U) dutyPercent = 100U;
     TIM20->CCR3 = dutyPercent;

@@ -3,20 +3,20 @@
 
 int getEncoderTheta();
 
-void TIM1_PWM_Init(void);
-void TIM8_PWM_Init(void);
-void TIM20_PWM_Init(void);
+void Pitch_PWM_Init(void);
+void Roll_PWM_Init(void);
+void Yaw_PWM_Init(void);
 
-void TIM1_CH1_SetDutyCycle(unsigned int dutyPercent);
-void TIM1_CH2_SetDutyCycle(unsigned int dutyPercent);
-void TIM1_CH3_SetDutyCycle(unsigned int dutyPercent);
+void Pitch_CH1_SetDutyCycle(unsigned int dutyPercent);
+void Pitch_CH2_SetDutyCycle(unsigned int dutyPercent);
+void Pitch_CH3_SetDutyCycle(unsigned int dutyPercent);
 
-void TIM8_CH1_SetDutyCycle(unsigned int dutyPercent);
-void TIM8_CH2_SetDutyCycle(unsigned int dutyPercent);
-void TIM8_CH3_SetDutyCycle(unsigned int dutyPercent);
+void Roll_CH1_SetDutyCycle(unsigned int dutyPercent);
+void Roll_CH2_SetDutyCycle(unsigned int dutyPercent);
+void Roll_CH3_SetDutyCycle(unsigned int dutyPercent);
 
-void TIM20_CH1_SetDutyCycle(unsigned int dutyPercent);
-void TIM20_CH2_SetDutyCycle(unsigned int dutyPercent);
-void TIM20_CH3_SetDutyCycle(unsigned int dutyPercent);
+void Yaw_CH1_SetDutyCycle(unsigned int dutyPercent);
+void Yaw_CH2_SetDutyCycle(unsigned int dutyPercent);
+void Yaw_CH3_SetDutyCycle(unsigned int dutyPercent);
 
 #endif // GIMBAL_FUNCS_H

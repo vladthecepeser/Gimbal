@@ -12,17 +12,18 @@ private:
 
     AS5600 encoder;
 
+    void (*setPhaseA)(unsigned int);
+    void (*setPhaseB)(unsigned int);
+    void (*setPhaseC)(unsigned int);
+
     // Pins
-    int aPhase;
-    int bPhase;
-    int cPhase;
     int directionPin;
 
     // Motor control parameters
     const char role;
     const int polePairCount;
-    const float elecAngleOffset;
-    const float mechAngleOffset; 
+    const float elecAngleOffset = 0.0f; // Electrical angle offset for calibration
+    const float mechAngleOffset  = 0.0f; // Mechanical angle offset for calibration
 
     //Computation
     float pastTheta = 0.0f;
@@ -45,29 +46,26 @@ private:
 public:
     FOCMotor(const char& Role, 
         const int PolePairCount,
-        const float ElecAngleOffset,
-        const float MechAngleOffset,
-        int APhase, 
-        int BPhase, 
-        int CPhase, 
+        void (*APhase)(unsigned int),
+        void (*BPhase)(unsigned int),   
+        void (*CPhase)(unsigned int),
         int DirectionPin,
         TwoWire* Bus = &Wire)
         : role(Role), 
         polePairCount(PolePairCount),
-        elecAngleOffset(ElecAngleOffset),
-        mechAngleOffset(MechAngleOffset),
-        aPhase(APhase), 
-        bPhase(BPhase), 
-        cPhase(CPhase), 
+        setPhaseA(APhase), 
+        setPhaseB(BPhase), 
+        setPhaseC(CPhase), 
         directionPin(DirectionPin),
         encoder(Bus)
 
     {
         encoder.begin(directionPin);  //  set direction pin.
         encoder.setDirection(AS5600_CLOCK_WISE);  //  default, just be explicit.
+
     }
 
-    string getRole() const
+    char getRole() const
     {
         return role;
     }
@@ -102,6 +100,7 @@ public:
 
     void updateFOC(int desiredTorque) //Expected runtime to be at most 500 us or 2kHz
     {
+        
         electricalAngle = theta - elecAngleOffset;
         while (electricalAngle >= electModulo) {
             electricalAngle -= electModulo;
@@ -121,6 +120,15 @@ public:
         V_b = (-0.5f * V_alpha) + (sqrt(3.0f) / 2.0f * V_beta);
         V_c = (-0.5f * V_alpha) - (sqrt(3.0f) / 2.0f * V_beta);
 
+        float offset = - (max({V_a, V_b, V_c}) + min({V_a, V_b, V_c})) / 2.0f;
+
+        V_a += offset;
+        V_b += offset; 
+        V_c += offset;
+
+
+
+    }
 
         return;
     }

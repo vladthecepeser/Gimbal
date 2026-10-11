@@ -10,10 +10,14 @@
 using namespace std;
 
 //pins 
-int wireSDA = 18;
-int wireSCl = 19;
-int wire_1SDA = 20;
-int wire_1SCL = 21;
+// Gyro I2c: PB7, PA15
+// Yaw I2c:  PF0, PC4
+// Roll I2c: PC11, PA8
+// Pitch I2c: PC7, PC6
+int pitchDirectionPin = 0;
+int rollDirectionPin = 0;
+int yawDirectionPin = 0;
+
 int baseInterruptPin = 17;
 int cameraInterruptPin = 16;
 constexpr uint8_t baseGyroAddress = 0x68;
@@ -55,6 +59,11 @@ TwoWire i2cYaw(PF0, PC4);
 TwoWire i2cRoll(PC11, PA8);
 TwoWire i2cPitch(PC7, PC6);
 
+FOCMotor Motors[3] = {{'p', 7, Pitch_CH1_SetDutyCycle, Pitch_CH2_SetDutyCycle, Pitch_CH3_SetDutyCycle, pitchDirectionPin, &i2cPitch}, //pitch motor
+                      {'r', 7, Roll_CH1_SetDutyCycle, Roll_CH2_SetDutyCycle, Roll_CH3_SetDutyCycle, rollDirectionPin, &i2cRoll}, //roll
+                      {'y', 7, Yaw_CH1_SetDutyCycle, Yaw_CH2_SetDutyCycle, Yaw_CH3_SetDutyCycle, yawDirectionPin, &i2cYaw}}; //yaw
+    
+    
 void timer2500HzCallback() {
     tick2500Hz = true;
 }
@@ -101,16 +110,11 @@ void PID_Loop()
   
 void setup()
 {
-    TIM1_PWM_Init();
-    TIM8_PWM_Init();
-    TIM20_PWM_Init();
+    Yaw_PWM_Init();
+    Roll_PWM_Init();
+    Pitch_PWM_Init();
 
-    FOCMotor Motors[]
     
-    Motors[0] = FOCMotor("Pitch Motor", aPhasePitch, bPhasePitch, cPhasePitch, SDAPitch, SCLPitch); //pitch motor
-    Motors[1] = FOCMotor("Roll Motor", aPhaseRoll, bPhaseRoll, cPhaseRoll, SDARoll, SCLRoll); //roll
-    Motors[2] = FOCMotor("Yaw Motor", aPhaseYaw, bPhaseYaw, cPhaseYaw, SDAYaw, SCLYaw); //yaw
-
     PID PIDS[]
 
     PIDS[0] = PID(kpPitch, kiPitch, kdPitch); //pitch PID
