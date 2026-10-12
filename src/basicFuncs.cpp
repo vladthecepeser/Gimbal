@@ -9,13 +9,15 @@
 //Don't need complimentary switching for DRV8313 -- handled internally by the DRV8313.  
 //So we can use the normal PWM outputs without the complementary ones.
 
+constexpr unsigned int PWM_ARR = 3400U;
+constexpr unsigned int PWM_CCR_MAX = PWM_ARR + 1U;
+
 void Pitch_PWM_Init(void)
 {
     // Assumes TIM1CLK = 170 MHz:
-    // counter clock = 170 MHz / (33 + 1) = 5 MHz
-    // center-aligned period = 2 * ARR = 200 ticks
-    // PWM frequency = 5 MHz / 200 = 25 kHz
-    // CCR1-3 values 0..100 provide approximately 1% duty increments.
+    // center-aligned period = 2 * ARR = 6800 ticks
+    // PWM frequency = 170 MHz / 6800 = 25 kHz
+    // CCR1-3 values 0..3400 provide approximately 0.029% duty increments.
 
     // Enable GPIOA/GPIOC and TIM1 clocks.
     RCC->AHB2ENR |= RCC_AHB2ENR_GPIOAEN | RCC_AHB2ENR_GPIOCEN;
@@ -53,8 +55,8 @@ void Pitch_PWM_Init(void)
     // Configure TIM1 while stopped.
     TIM1->CR1 &= ~TIM_CR1_CEN;
 
-    TIM1->PSC = 33U;
-    TIM1->ARR = 100U;
+    TIM1->PSC = 0U;
+    TIM1->ARR = PWM_ARR;
     TIM1->RCR = 0U;
 
     // Center-aligned mode 1 (CMS = 01), initially count upward.
@@ -94,10 +96,9 @@ void Pitch_PWM_Init(void)
 void Roll_PWM_Init(void)
 {
     // Assumes TIM8CLK = 170 MHz:
-    // counter clock = 170 MHz / (33 + 1) = 5 MHz
-    // center-aligned period = 2 * ARR = 200 ticks
-    // PWM frequency = 5 MHz / 200 = 25 kHz
-    // CCR1-3 values 0..100 provide approximately 1% duty increments.
+    // center-aligned period = 2 * ARR = 6800 ticks
+    // PWM frequency = 170 MHz / 6800 = 25 kHz
+    // CCR1-3 values 0..3400 provide approximately 0.029% duty increments.
 
     // Enable GPIOB/GPIOC and TIM8 clocks.
     RCC->AHB2ENR |= RCC_AHB2ENR_GPIOBEN | RCC_AHB2ENR_GPIOCEN;
@@ -130,8 +131,8 @@ void Roll_PWM_Init(void)
 
     TIM8->CR1 &= ~TIM_CR1_CEN;
 
-    TIM8->PSC = 33U;
-    TIM8->ARR = 100U;
+    TIM8->PSC = 0U;
+    TIM8->ARR = PWM_ARR;
     TIM8->RCR = 0U;
 
     TIM8->CR1 &= ~(TIM_CR1_CMS_Msk | TIM_CR1_DIR);
@@ -163,10 +164,9 @@ void Roll_PWM_Init(void)
 void Yaw_PWM_Init(void)
 {
     // Assumes TIM20CLK = 170 MHz:
-    // counter clock = 170 MHz / (33 + 1) = 5 MHz
-    // center-aligned period = 2 * ARR = 200 ticks
-    // PWM frequency = 5 MHz / 200 = 25 kHz
-    // CCR1-3 values 0..100 provide approximately 1% duty increments.
+    // center-aligned period = 2 * ARR = 6800 ticks
+    // PWM frequency = 170 MHz / 6800 = 25 kHz
+    // CCR1-3 values 0..3400 provide approximately 0.029% duty increments.
 
     // Enable GPIOB/GPIOC and TIM20 clocks.
     RCC->AHB2ENR |= RCC_AHB2ENR_GPIOBEN | RCC_AHB2ENR_GPIOCEN;
@@ -206,8 +206,8 @@ void Yaw_PWM_Init(void)
 
     TIM20->CR1 &= ~TIM_CR1_CEN;
 
-    TIM20->PSC = 33U;
-    TIM20->ARR = 100U;
+    TIM20->PSC = 0U;
+    TIM20->ARR = PWM_ARR;
     TIM20->RCR = 0U;
 
     TIM20->CR1 &= ~(TIM_CR1_CMS_Msk | TIM_CR1_DIR);
@@ -236,56 +236,56 @@ void Yaw_PWM_Init(void)
     TIM20->CR1 |= TIM_CR1_CEN;
 }
 
-void Pitch_CH1_SetDutyCycle(unsigned int dutyPercent)
+void Pitch_CH1_SetDutyCycle(unsigned int ccrValue)
 {
-    if (dutyPercent > 100U) dutyPercent = 100U;
-    TIM1->CCR1 = dutyPercent;
+    if (ccrValue > PWM_CCR_MAX) ccrValue = PWM_CCR_MAX;
+    TIM1->CCR1 = ccrValue;
 }
 
-void Pitch_CH2_SetDutyCycle(unsigned int dutyPercent)
+void Pitch_CH2_SetDutyCycle(unsigned int ccrValue)
 {
-    if (dutyPercent > 100U) dutyPercent = 100U;
-    TIM1->CCR2 = dutyPercent;
+    if (ccrValue > PWM_CCR_MAX) ccrValue = PWM_CCR_MAX;
+    TIM1->CCR2 = ccrValue;
 }
 
-void Pitch_CH3_SetDutyCycle(unsigned int dutyPercent)
+void Pitch_CH3_SetDutyCycle(unsigned int ccrValue)
 {
-    if (dutyPercent > 100U) dutyPercent = 100U;
-    TIM1->CCR3 = dutyPercent;
+    if (ccrValue > PWM_CCR_MAX) ccrValue = PWM_CCR_MAX;
+    TIM1->CCR3 = ccrValue;
 }
 
-void Roll_CH1_SetDutyCycle(unsigned int dutyPercent)
+void Roll_CH1_SetDutyCycle(unsigned int ccrValue)
 {
-    if (dutyPercent > 100U) dutyPercent = 100U;
-    TIM8->CCR1 = dutyPercent;
+    if (ccrValue > PWM_CCR_MAX) ccrValue = PWM_CCR_MAX;
+    TIM8->CCR1 = ccrValue;
 }
 
-void Roll_CH2_SetDutyCycle(unsigned int dutyPercent)
+void Roll_CH2_SetDutyCycle(unsigned int ccrValue)
 {
-    if (dutyPercent > 100U) dutyPercent = 100U;
-    TIM8->CCR2 = dutyPercent;
+    if (ccrValue > PWM_CCR_MAX) ccrValue = PWM_CCR_MAX;
+    TIM8->CCR2 = ccrValue;
 }
 
-void Roll_CH3_SetDutyCycle(unsigned int dutyPercent)
+void Roll_CH3_SetDutyCycle(unsigned int ccrValue)
 {
-    if (dutyPercent > 100U) dutyPercent = 100U;
-    TIM8->CCR3 = dutyPercent;
+    if (ccrValue > PWM_CCR_MAX) ccrValue = PWM_CCR_MAX;
+    TIM8->CCR3 = ccrValue;
 }
 
-void Yaw_CH1_SetDutyCycle(unsigned int dutyPercent)
+void Yaw_CH1_SetDutyCycle(unsigned int ccrValue)
 {
-    if (dutyPercent > 100U) dutyPercent = 100U;
-    TIM20->CCR1 = dutyPercent;
+    if (ccrValue > PWM_CCR_MAX) ccrValue = PWM_CCR_MAX;
+    TIM20->CCR1 = ccrValue;
 }
 
-void Yaw_CH2_SetDutyCycle(unsigned int dutyPercent)
+void Yaw_CH2_SetDutyCycle(unsigned int ccrValue)
 {
-    if (dutyPercent > 100U) dutyPercent = 100U;
-    TIM20->CCR2 = dutyPercent;
+    if (ccrValue > PWM_CCR_MAX) ccrValue = PWM_CCR_MAX;
+    TIM20->CCR2 = ccrValue;
 }
 
-void Yaw_CH3_SetDutyCycle(unsigned int dutyPercent)
+void Yaw_CH3_SetDutyCycle(unsigned int ccrValue)
 {
-    if (dutyPercent > 100U) dutyPercent = 100U;
-    TIM20->CCR3 = dutyPercent;
+    if (ccrValue > PWM_CCR_MAX) ccrValue = PWM_CCR_MAX;
+    TIM20->CCR3 = ccrValue;
 }

@@ -26,6 +26,18 @@ constexpr uint8_t cameraGyroAddress = 0x69;
 //Motor specifics
 const int polePairCount = 7;
 
+const float kpPitch = 0.5f;
+const float kiPitch = 0.1f;
+const float kdPitch = 0.05f;
+
+const float kpRoll = 0.5f;
+const float kiRoll = 0.1f;
+const float kdRoll = 0.05f;
+
+const float kpYaw = 0.5f;
+const float kiYaw = 0.1f;
+const float kdYaw = 0.05f;
+
 //Offsets
 int baseXGyroOffset = 0;
 int baseYGyroOffset = 0;
@@ -47,7 +59,7 @@ volatile bool tick2500Hz = false;
 volatile bool baseFifoInterrupt = false;
 volatile bool cameraFifoInterrupt = false;
 
-//Global Vars
+//Global Class Instances
 Quaternion qBase;
 Quaternion qcamera;
 

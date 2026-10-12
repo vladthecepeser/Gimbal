@@ -31,20 +31,14 @@ private:
     float currentCumulativeTheta = 0.0f;
     bool angleInitialized = false;
     float electricalAngle;
-    const float pi = 3.14159265358979323846f;
-    const float twoPi = 2.0f * pi;
-    const float electModulo = 2.0f * pi / polePairCount;
-
-    int V_quadrature;
-    int V_beta;
-    int V_alpha;
-
-    int V_a;
-    int V_b;
-    int V_c;
+    static const float pi = 3.14159265358979323846f;
+    static const float twoPi = 2.0f * pi;
+    static const float invSqrt3 = 0.57735027f;
+    static const float sqrt3Over2 = 0.866025403f;
+    const float electModulo;
 
 public:
-    FOCMotor(const char& Role, 
+    FOCMotor(const char& Role,
         const int PolePairCount,
         void (*APhase)(unsigned int),
         void (*BPhase)(unsigned int),   
@@ -57,7 +51,8 @@ public:
         setPhaseB(BPhase), 
         setPhaseC(CPhase), 
         directionPin(DirectionPin),
-        encoder(Bus)
+        encoder(Bus),
+        electModulo(2.0f * pi / static_cast<float>(polePairCount))
 
     {
         encoder.begin(directionPin);  //  set direction pin.
@@ -72,35 +67,37 @@ public:
 
     void updatePosition() //Expected runtime to be at most 500 us or 2kHz
     {                   
-        const float theta = encoder.rawAngle() * AS5600_RAW_TO_RADIANS;
+        const float measuredTheta = encoder.rawAngle() * AS5600_RAW_TO_RADIANS;
 
         if (encoder.lastError() != AS5600_OK) {
             return;
         }
 
+        theta = measuredTheta;
         if (!angleInitialized) {
-            currentCumulativeTheta = theta;
+            pastTheta = measuredTheta;
+            currentCumulativeTheta = measuredTheta;
             angleInitialized = true;
             return;
         }
 
-        float difference = theta - pastTheta;
+        float difference = measuredTheta - pastTheta;
         if (difference > pi) {
             difference -= twoPi;
         } else if (difference < -pi) {
             difference += twoPi;
         }
 
-        pastTheta = theta;
+        pastTheta = measuredTheta;
         currentCumulativeTheta += difference;
     
         return;
 
     }
 
-    void updateFOC(int desiredTorque) //Expected runtime to be at most 500 us or 2kHz
-    {
-        
+    void updateFOC(float desiredVoltage) //Expected runtime to be at most 500 us or 2kHz
+    { //expected input range -1 to 1; sign selects torque direction
+
         electricalAngle = theta - elecAngleOffset;
         while (electricalAngle >= electModulo) {
             electricalAngle -= electModulo;
@@ -109,36 +106,37 @@ public:
             electricalAngle += electModulo;
         }
 
-        const float sinAngle = sin(electricalAngle);
-        const float cosAngle = cos(electricalAngle);
+        if (desiredVoltage < -1.0f) desiredVoltage = -1.0f;
+        if (desiredVoltage > 1.0f)  desiredVoltage = 1.0f;
 
-        V_quadrature = desiredTorque;
-        V_beta = V_quadrature * sinAngle;
-        V_alpha = V_quadrature * cosAngle;
+        const float vQuadrature = (desiredVoltage * 3400.0f) * invSqrt3;
+        const float vBeta = vQuadrature * cosf(electricalAngle);
+        const float vAlpha = -vQuadrature * sinf(electricalAngle);
 
-        V_a = V_alpha;
-        V_b = (-0.5f * V_alpha) + (sqrt(3.0f) / 2.0f * V_beta);
-        V_c = (-0.5f * V_alpha) - (sqrt(3.0f) / 2.0f * V_beta);
+        //Below is SVPWM. Use common mode injection. 
+        //More computationally efficient than sector-dwelling and vector lookups.
+        const float vA = vAlpha;
+        const float vB = (-0.5f * vAlpha) + (sqrt3Over2 * vBeta);
+        const float vC = (-0.5f * vAlpha) - (sqrt3Over2 * vBeta);
 
-        float offset = - (max({V_a, V_b, V_c}) + min({V_a, V_b, V_c})) / 2.0f;
+        const float maxPhase = fmaxf(vA, fmaxf(vB, vC));
+        const float minPhase = fminf(vA, fminf(vB, vC));
+        const float offset = -(maxPhase + minPhase) / 2.0f;
 
-        V_a += offset;
-        V_b += offset; 
-        V_c += offset;
+        const float midpoint = 1700.0f;
+        const float ccrMax = 3400.0f;
 
+        const float dutyA = (vA + offset + midpoint < 0.0f) ? 0.0f : (vA + offset + midpoint > ccrMax);
+        const float dutyB = (vB + offset + midpoint < 0.0f) ? 0.0f : (vB + offset + midpoint > ccrMax);
+        const float dutyC = (vC + offset + midpoint < 0.0f) ? 0.0f : (vC + offset + midpoint > ccrMax);
 
-
-    }
+        setPhaseA(static_cast<unsigned int>(dutyA));
+        setPhaseB(static_cast<unsigned int>(dutyB));
+        setPhaseC(static_cast<unsigned int>(dutyC));
 
         return;
     }
     
-
-    //Use common mode injection. More computationally efficient than
-    void applySVPWM()
-    {
-        
-    }
 
     float getPostition(){
         return(currentCumulativeTheta);
