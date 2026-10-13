@@ -128,9 +128,16 @@ void setup()
 
     for (int i = 0; i < 3; i++)
     {
-        Motors[i].initMotor();  //calculates the electrical angle offset for each motor
+        Motors[i].initPosition();
     }
-    
+
+    delay(1000);
+
+    for (int i = 0; i < 3; i++)
+    {
+        Motors[i].initElecAngle();  //calculates the electrical angle offset for each motor
+    }
+
     PID PIDS[]
 
     PIDS[0] = PID(kpPitch, kiPitch, kdPitch); //pitch PID

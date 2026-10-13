@@ -139,14 +139,15 @@ public:
         return;
     }
     
-    void initMotor()
+    void initPosition()
     {
         setPhaseA(static_cast<unsigned int>(1700));
         setPhaseB(static_cast<unsigned int>(3400));
         setPhaseC(static_cast<unsigned int>(0));
-
-        delay(1000);
-
+    }
+    
+    void initElecAngle()
+    {
         updatePosition();
 
         electricalAngle = theta;
