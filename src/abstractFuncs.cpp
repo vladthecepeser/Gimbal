@@ -22,7 +22,7 @@ private:
     // Motor control parameters
     const char role;
     const int polePairCount;
-    const float elecAngleOffset = 0.0f; // Electrical angle offset for calibration
+    float elecAngleOffset; // Electrical angle offset for calibration
     const float mechAngleOffset  = 0.0f; // Mechanical angle offset for calibration
 
     //Computation
@@ -106,6 +106,8 @@ public:
             electricalAngle += electModulo;
         }
 
+        electricalAngle *= static_cast<float>(polePairCount);
+
         if (desiredVoltage < -1.0f) desiredVoltage = -1.0f;
         if (desiredVoltage > 1.0f)  desiredVoltage = 1.0f;
 
@@ -126,9 +128,9 @@ public:
         const float midpoint = 1700.0f;
         const float ccrMax = 3400.0f;
 
-        const float dutyA = (vA + offset + midpoint < 0.0f) ? 0.0f : (vA + offset + midpoint > ccrMax);
-        const float dutyB = (vB + offset + midpoint < 0.0f) ? 0.0f : (vB + offset + midpoint > ccrMax);
-        const float dutyC = (vC + offset + midpoint < 0.0f) ? 0.0f : (vC + offset + midpoint > ccrMax);
+        const float dutyA = (vA + offset + midpoint < 0.0f) ? 0.0f : (vA + offset + midpoint > ccrMax) ? ccrMax : (vA + offset + midpoint);
+        const float dutyB = (vB + offset + midpoint < 0.0f) ? 0.0f : (vB + offset + midpoint > ccrMax) ? ccrMax : (vB + offset + midpoint);
+        const float dutyC = (vC + offset + midpoint < 0.0f) ? 0.0f : (vC + offset + midpoint > ccrMax) ? ccrMax : (vC + offset + midpoint);
 
         setPhaseA(static_cast<unsigned int>(dutyA));
         setPhaseB(static_cast<unsigned int>(dutyB));
@@ -137,6 +139,25 @@ public:
         return;
     }
     
+    void initMotor()
+    {
+        setPhaseA(static_cast<unsigned int>(1700));
+        setPhaseB(static_cast<unsigned int>(3400));
+        setPhaseC(static_cast<unsigned int>(0));
+
+        delay(1000);
+
+        updatePosition();
+
+        electricalAngle = theta;
+        while (electricalAngle >= electModulo) {
+            electricalAngle -= electModulo;
+        }
+        while (electricalAngle < 0.0f) {
+            electricalAngle += electModulo;
+        }
+        elecAngleOffset = electricalAngle;
+    }
 
     float getPostition(){
         return(currentCumulativeTheta);

@@ -126,6 +126,10 @@ void setup()
     Roll_PWM_Init();
     Pitch_PWM_Init();
 
+    for (int i = 0; i < 3; i++)
+    {
+        Motors[i].initMotor();  //calculates the electrical angle offset for each motor
+    }
     
     PID PIDS[]
 
