@@ -10,11 +10,6 @@
             "includePath": [
                 "C:/PlatformIO/Gimbal/include",
                 "C:/PlatformIO/Gimbal/src",
-                "C:/PlatformIO/Gimbal/.pio/libdeps/nucleo_g474re/AS5600",
-                "C:/PlatformIO/Gimbal/.pio/libdeps/nucleo_g474re/MPU6050/src",
-                "C:/PlatformIO/Gimbal/.pio/libdeps/nucleo_g474re/I2Cdevlib-MPU6050",
-                "C:/PlatformIO/Gimbal/.pio/libdeps/nucleo_g474re/I2Cdevlib-Core",
-                "C:/Users/gligo/.platformio/packages/framework-arduinoststm32/libraries/Wire/src",
                 "C:/Users/gligo/.platformio/packages/framework-arduinoststm32/cores/arduino/avr",
                 "C:/Users/gligo/.platformio/packages/framework-arduinoststm32/cores/arduino/stm32",
                 "C:/Users/gligo/.platformio/packages/framework-arduinoststm32/cores/arduino/api/deprecated",
@@ -52,6 +47,7 @@
                 "C:/Users/gligo/.platformio/packages/framework-arduinoststm32/libraries/SubGhz/src",
                 "C:/Users/gligo/.platformio/packages/framework-arduinoststm32/libraries/USBDevice/src",
                 "C:/Users/gligo/.platformio/packages/framework-arduinoststm32/libraries/VirtIO/src",
+                "C:/Users/gligo/.platformio/packages/framework-arduinoststm32/libraries/Wire/src",
                 ""
             ],
             "browse": {
@@ -59,11 +55,6 @@
                 "path": [
                     "C:/PlatformIO/Gimbal/include",
                     "C:/PlatformIO/Gimbal/src",
-                    "C:/PlatformIO/Gimbal/.pio/libdeps/nucleo_g474re/AS5600",
-                    "C:/PlatformIO/Gimbal/.pio/libdeps/nucleo_g474re/MPU6050/src",
-                    "C:/PlatformIO/Gimbal/.pio/libdeps/nucleo_g474re/I2Cdevlib-MPU6050",
-                    "C:/PlatformIO/Gimbal/.pio/libdeps/nucleo_g474re/I2Cdevlib-Core",
-                    "C:/Users/gligo/.platformio/packages/framework-arduinoststm32/libraries/Wire/src",
                     "C:/Users/gligo/.platformio/packages/framework-arduinoststm32/cores/arduino/avr",
                     "C:/Users/gligo/.platformio/packages/framework-arduinoststm32/cores/arduino/stm32",
                     "C:/Users/gligo/.platformio/packages/framework-arduinoststm32/cores/arduino/api/deprecated",
@@ -101,6 +92,7 @@
                     "C:/Users/gligo/.platformio/packages/framework-arduinoststm32/libraries/SubGhz/src",
                     "C:/Users/gligo/.platformio/packages/framework-arduinoststm32/libraries/USBDevice/src",
                     "C:/Users/gligo/.platformio/packages/framework-arduinoststm32/libraries/VirtIO/src",
+                    "C:/Users/gligo/.platformio/packages/framework-arduinoststm32/libraries/Wire/src",
                     ""
                 ]
             },

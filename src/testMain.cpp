@@ -71,9 +71,9 @@ TwoWire i2cYaw(PF0, PC4);
 TwoWire i2cRoll(PC11, PA8);
 TwoWire i2cPitch(PC7, PC6);
 
-FOCMotor Motors[3] = {{'p', 7, Pitch_CH1_SetDutyCycle, Pitch_CH2_SetDutyCycle, Pitch_CH3_SetDutyCycle, pitchDirectionPin, &i2cPitch}, //pitch motor
-                      {'r', 7, Roll_CH1_SetDutyCycle, Roll_CH2_SetDutyCycle, Roll_CH3_SetDutyCycle, rollDirectionPin, &i2cRoll}, //roll
-                      {'y', 7, Yaw_CH1_SetDutyCycle, Yaw_CH2_SetDutyCycle, Yaw_CH3_SetDutyCycle, yawDirectionPin, &i2cYaw}}; //yaw
+FOCMotor Motors[3] = {{'p', 7, Pitch_CH1_SetDutyCycle, Pitch_CH2_SetDutyCycle, Pitch_CH3_SetDutyCycle, pitchDirectionPin, &i2cPitch, kpPitch, kiPitch, kdPitch}, //pitch motor
+                      {'r', 7, Roll_CH1_SetDutyCycle, Roll_CH2_SetDutyCycle, Roll_CH3_SetDutyCycle, rollDirectionPin, &i2cRoll, kpRoll, kiRoll, kdRoll}, //roll
+                      {'y', 7, Yaw_CH1_SetDutyCycle, Yaw_CH2_SetDutyCycle, Yaw_CH3_SetDutyCycle, yawDirectionPin, &i2cYaw, kpYaw, kiYaw, kdYaw}}; //yaw
     
     
 void timer2500HzCallback() {
@@ -97,8 +97,6 @@ void FOC_Control_2500Hz()
         Motors[i].updatePosition();  //gets angle and calculates electrical angle
                                     //Realistically only updates every 200 uS
         Motors[i].updateFOC();      //includes inverse_park and SVPWM calculation
-
-        Motors[i].applySVPWM();     //applies the calculated SVPWM to the motor
     }
 
     //Code separated to make class easier to change
@@ -113,12 +111,25 @@ void PID_Loop()
     {
         errors[i] = desiredAngle[i] - baseGyro->getAngle(i);
 
-        PIDS[i].updatePID(errors[i], pastErrors[i], dt);
+        Motors[i].PID(errors[i], pastErrors[i], dt);
     }
 
     PastErrors = errors;
 }
 
+
+void smallAngleStabilize()
+{
+    float errors[3] = {0.0f,0.0f,0.0f};
+    for (int i = 0; i < 3; i++)
+    {
+        errors[i] = desiredAngle[i] - baseGyro->getAngle(i);
+
+        Motors[i].PID(errors[i], pastErrors[i], dt);
+    }
+
+    PastErrors = errors;
+}
   
 void setup()
 {
@@ -131,18 +142,19 @@ void setup()
         Motors[i].initPosition();
     }
 
-    delay(1000);
+    delay(500);
 
     for (int i = 0; i < 3; i++)
     {
         Motors[i].initElecAngle();  //calculates the electrical angle offset for each motor
     }
 
-    PID PIDS[]
-
-    PIDS[0] = PID(kpPitch, kiPitch, kdPitch); //pitch PID
-    PIDS[1] = PID(kpRoll, kiRoll, kdRoll); //roll PID
-    PIDS[2] = PID(kpYaw, kiYaw, kdYaw); //yaw PID
+    Control.smallAngleOffset();
+    //something something
+        for (int i = 0; i < 3; i++)
+    {
+        Motors[i].initMechAngle();  //calculates the electrical angle offset for each motor
+    }
 
     timer2500Hz.setOverflow(2500, HERTZ_FORMAT);
     timer2500Hz.attachInterrupt(timer2500HzCallback);

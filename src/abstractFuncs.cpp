@@ -22,8 +22,12 @@ private:
     // Motor control parameters
     const char role;
     const int polePairCount;
-    float elecAngleOffset; // Electrical angle offset for calibration
+    float elecAngleOffset; // ***Ensure this is only written to in initElecAngle()
+    float mechAngleOffset; // ***Ensure this is only written to in initMechanicalAngle()
     const float mechAngleOffset  = 0.0f; // Mechanical angle offset for calibration
+    const float kP;
+    const float kI;
+    const float kD;
 
     //Computation
     float pastTheta = 0.0f;
@@ -44,7 +48,10 @@ public:
         void (*BPhase)(unsigned int),   
         void (*CPhase)(unsigned int),
         int DirectionPin,
-        TwoWire* Bus = &Wire)
+        TwoWire* Bus = &Wire,
+        float Kp,
+        float Ki,
+        float Kd)
         : role(Role), 
         polePairCount(PolePairCount),
         setPhaseA(APhase), 
@@ -52,6 +59,9 @@ public:
         setPhaseC(CPhase), 
         directionPin(DirectionPin),
         encoder(Bus),
+        kP(Kp),
+        kI(Ki),
+        kD(Kd),
         electModulo(2.0f * pi / static_cast<float>(polePairCount))
 
     {
@@ -138,6 +148,16 @@ public:
 
         return;
     }
+
+    void PID(float error, float pastError, float dt) //Expected runtime to be at most 500 us or 2kHz
+    {
+        float derivative = (error - pastError) / dt;
+        float integral = error * dt;
+
+        float controlSignal = (kP * error) + (kI * integral) + (kD * derivative);
+
+        updateFOC(controlSignal);
+    }
     
     void initPosition()
     {
@@ -160,6 +180,12 @@ public:
         elecAngleOffset = electricalAngle;
     }
 
+    void initMechAngle()
+    {
+        updatePosition();
+        mechAngleOffset = theta;
+    }
+
     float getPostition(){
         return(currentCumulativeTheta);
     }
@@ -167,38 +193,16 @@ public:
 
 
 
-class PID
+class Control
 {
 private:
-    int ki;
-    int kp;
-    int kd;
-
-    int voltageQuadrature;
 
 public:
-    PID(int kp, int ki, int kd)
-        : kp(kp), ki(ki), kd(kd)
+    Control()
     {
     }
 
-    void setI(int ki){this->ki = ki;
-    }
-    
-    void setP(int kp){this->kp = kp;
-    }
 
-    void setD(int kd){this->kd = kd;
-    }   
-
-    void updatePID(int error, int pastError, int dt)
-    {
-        voltageQuadrature = kp*error + ki*(1/2)*dt*(pastError + error) + kd*(pastError - error)/dt;
-    }
-
-    int getVoltageQuadrature(){
-        return voltageQuadrature;
-    }
 
 };
 
@@ -225,6 +229,11 @@ private:
     int xAccelOffset;
     int yAccelOffset;
     int zAccelOffset;
+
+    //Calculation Stuff
+    float roll, pitch, yaw;
+    quaternion q;
+
 public:
     Gyro(int interruptPin,
         uint8_t address,
@@ -269,12 +278,33 @@ public:
         }
     }
 
+    bool update ()
+    {
+        if (!DMPReady) return false;
+
+        if (mpu.dmpGetCurrentFIFOPacket(FIFOBuffer)) {
+            mpu.dmpGetQuaternion(&q, FIFOBuffer);
+            mpu.dmpGetEuler(&roll, &pitch, &yaw, &q);
+            return true;
+        }
+        return false;
+    }
+    
     bool getQuaternion(Quaternion& quaternion) {
         if (!mpu.dmpGetCurrentFIFOPacket(FIFOBuffer)) {
             return false;
         }
 
         mpu.dmpGetQuaternion(&quaternion, FIFOBuffer);
+        return true;
+    }
+
+    bool getEuler(float& roll, float& pitch, float& yaw) {
+        if (!getQuaternion(q)) {
+            return false;
+        }
+
+        mpu.dmpGetEuler(&roll, &pitch, &yaw, &q);
         return true;
     }
 
